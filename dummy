@@ -1,0 +1,338 @@
+from flask import Flask, render_template, jsonify, request
+from flask_pymongo import PyMongo
+import openai
+import os
+import pandas as pd
+import pdfplumber
+import gridfs
+import uuid
+from Key import OPENAI_API_KEY
+from graph_utils import generate_graph  # Importing the graph utility
+
+# Set your OpenAI API key
+openai.api_key = OPENAI_API_KEY
+
+app = Flask(__name__)
+app.config["MONGO_URI"] = "mongodb+srv://shakeashik16:QtFYhn9pelryBKlM@cluster0.xtmta.mongodb.net/chatgpt"
+app.config["UPLOAD_FOLDER"] = "./uploads"  # Folder to save uploaded files
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)  # Create folder if it doesn't exist
+mongo = PyMongo(app)
+fs = gridfs.GridFS(mongo.db)  # Initialize GridFS for file storage
+
+# Store file data in memory for simplicity (can be extended to database storage)
+file_data_store = {}
+
+def extract_graph_details(question):
+    """
+    Query ChatGPT to extract details for graph generation from the user's question.
+    """
+    try:
+        # Query OpenAI's API for extracting graph details
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "user", "content": f"Analyze the following query and extract graph details, including graph type, x-axis, y-axis, and any additional information needed: {question}"}
+            ],
+            temperature=0.5,
+            max_tokens=200,
+        )
+        # Parse the response from ChatGPT
+        graph_details = response.choices[0].message.content.strip()
+        print(f"Extracted Graph Details: {graph_details}")
+        return eval(graph_details)  # Convert the string response to a Python dictionary
+    except Exception as e:
+        print(f"Error in extract_graph_details: {e}")
+        return None
+
+
+@app.route("/")
+def home():
+    try:
+        # Retrieve chats from MongoDB
+        chats = mongo.db.chats.find({})
+        myChats = [chat for chat in chats]
+        print("Chats retrieved successfully:", myChats)
+        return render_template("new.html", myChats=myChats)
+    except Exception as e:
+        print(f"Error retrieving chats: {e}")
+        return render_template("new.html", myChats=[])
+
+
+@app.route("/api", methods=["POST"])
+def qa():
+    if request.method == "POST":
+        try:
+            print("Request received:", request.json)
+            question = request.json.get("question")
+            file_id = request.json.get("file_id")  # This may be None
+
+            if not question:
+                return jsonify({"answer": "No question provided"}), 400
+
+            # Handle graph-related keywords in the question
+            if "graph" in question.lower() or "chart" in question.lower():
+                graph_details = extract_graph_details(question)
+                if not graph_details:
+                    return jsonify({"answer": "Could not understand the graph request. Please try again."}), 400
+
+                graph_info = {
+                    "graph_type": graph_details.get("graph_type", "bar"),
+                    "x_label": graph_details.get("x_label", "X-axis"),
+                    "y_label": graph_details.get("y_label", "Y-axis"),
+                    "title": graph_details.get("title", "Generated Graph"),
+                }
+
+                if file_id and file_id in file_data_store:
+                    graph_data = file_data_store[file_id]
+                    graph_info["graph_data"] = graph_data
+                    response = app.test_client().post("/generate_graph", json=graph_info)
+                    return response
+                else:
+                    return jsonify({"answer": "No file data available for graph generation."}), 400
+
+            # Retrieve file content if file_id is provided
+            if file_id and file_id in file_data_store:
+                file_data = file_data_store[file_id]
+                file_type = file_data.get("type")
+
+                if file_type == "csv":
+                    # Use the CSV summary in the prompt
+                    file_content = f"Here is the summary of the uploaded file '{file_id}':\n{file_data['ai_summary']}"
+                elif file_type == "pdf":
+                    # Use the PDF summary and suggestions in the prompt
+                    file_content = (
+                        f"Here is the summary of the uploaded PDF file '{file_id}':\n{file_data['ai_summary']}\n\n"
+                        f"Suggestions for improvement:\n{file_data['improvement_suggestions']}"
+                    )
+                else:
+                    file_content = f"The uploaded file '{file_id}' type is unsupported for detailed analysis."
+
+                # Combine file content with the user's question
+                full_prompt = f"{file_content}\n\nUser's question: {question}"
+            else:
+                # No file context available, use the question directly
+                full_prompt = question
+
+            # Query OpenAI with the constructed prompt
+            print("Querying ChatGPT with prompt:", full_prompt)
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are SalesSensei, an AI sales coach and business development expert. Your job is to assist with "
+                            "sales strategies, closing techniques, negotiation tactics, and client engagement. Provide actionable, "
+                            "business-focused advice in a professional and concise tone. When the user greets, introduce yourself "
+                            "as SalesSensei with relevant business-related emojis. For questions involving uploaded files, use the "
+                            "provided file summaries and insights to craft your response."
+                        ),
+                    },
+                    {"role": "user", "content": full_prompt},
+                ],
+                temperature=0.7,
+                max_tokens=1000,
+                top_p=1,
+                frequency_penalty=0,
+                presence_penalty=0,
+            )
+
+            # Extract OpenAI response
+            answer = response.choices[0].message.content.strip()
+            print(f"ChatGPT Response: {answer}")
+
+
+            # Save the question and answer to the database
+            mongo.db.chats.insert_one({"question": question, "answer": answer})
+            return jsonify({"question": question, "answer": answer})
+
+        except Exception as e:
+            print(f"Error processing question: {e}")
+            return jsonify({"answer": "An error occurred while processing your request. Please try again later."}), 500
+
+
+
+@app.route("/upload", methods=["POST"])
+def upload_file():
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    if file:
+        try:
+            # Use filename as a simple file ID (update for production if needed)
+            file_id = str(uuid.uuid4()) 
+            file_data_store[file_id] = {}  # Create a data store entry for the file
+            print(f"File received with ID: {file_id}")
+
+            # Process CSV files
+            if file.filename.endswith(".csv"):
+                file.seek(0)  # Reset file pointer
+                try:
+                    # Read CSV into a pandas DataFrame
+                    data = pd.read_csv(file)
+
+                    # Check if the data is valid
+                    if data.empty or data.columns.empty:
+                        return jsonify({"error": "The uploaded CSV file is empty or invalid."}), 400
+
+                    # Log columns and data preview for debugging
+                    print(f"CSV Columns: {list(data.columns)}")
+                    print(data.head())
+
+                    # Convert the first 30 rows to plain text for summarization
+                    summary_input = data.head(30).to_string(index=False)
+
+                    # Query OpenAI for summarization and insights
+                    try:
+                        response = openai.ChatCompletion.create(
+                            model="gpt-4",
+                            messages=[
+                                {"role": "system", "content": "You are a data analyst."},
+                                {"role": "user", "content": f"Here is a sample of the uploaded data:\n\n{summary_input}\n\nPlease summarize and analyze this data. Highlight trends, insights, and any anomalies."}
+                            ],
+                            temperature=0.7,
+                            max_tokens=300,
+                        )
+                        ai_summary = response.choices[0].message.content.strip()
+                    except Exception as e:
+                        print(f"Error querying OpenAI for CSV analysis: {e}")
+                        ai_summary = "Unable to analyze the data using OpenAI."
+
+                    # Store the analyzed data
+                    file_data_store[file_id]["type"] = "csv"
+                    file_data_store[file_id]["columns"] = list(data.columns)
+                    file_data_store[file_id]["ai_summary"] = ai_summary
+
+                    # Return the response
+                    return jsonify({
+                        "message": "File uploaded and processed successfully",
+                        "file_id": file_id,
+                        "file_type": "CSV",
+                        "columns": list(data.columns),
+                        "ai_summary": ai_summary
+                    }), 200
+                
+                except Exception as e:
+                    print(f"Error reading CSV file: {e}")
+                    return jsonify({"error": "Failed to read the CSV file. Ensure it is correctly formatted."}), 400
+            
+            # Process PDF files
+            elif file.filename.endswith(".pdf"):
+                file.seek(0)  # Reset file pointer
+                try:
+                    # Extract text from the PDF
+                    with pdfplumber.open(file) as pdf:
+                        text = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
+                except Exception as e:
+                    print(f"Error reading PDF file: {e}")
+                    return jsonify({"error": "Failed to read the PDF file. Ensure it contains readable text."}), 400
+
+                # Check if the PDF has readable text
+                if not text.strip():
+                    return jsonify({"error": "The uploaded PDF file is empty or contains no readable text."}), 400
+
+                # Truncate text if it exceeds OpenAI's token limits
+                max_chars = 2000
+                truncated_text = text[:max_chars]
+
+                # Query OpenAI for summarization and proposal improvement suggestions
+                try:
+                    # Summarize the content
+                    summary_response = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=[
+                            {"role": "system", "content": "You are a document summarizer."},
+                            {"role": "user", "content": f"Summarize the following document:\n\n{truncated_text}"}
+                        ],
+                        temperature=0.7,
+                        max_tokens=300,
+                    )
+                    ai_summary = summary_response.choices[0].message.content.strip()
+
+                    # Generate improvement suggestions
+                    improvement_response = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=[
+                            {"role": "system", "content": "You are a business consultant specializing in improving proposals."},
+                            {"role": "user", "content": f"Based on this summary:\n\n{ai_summary}\n\nSuggest improvements to make this proposal more effective and persuasive."}
+                        ],
+                        temperature=0.7,
+                        max_tokens=300,
+                    )
+                    improvement_suggestions = improvement_response.choices[0].message.content.strip()
+
+                except Exception as e:
+                    print(f"Error querying OpenAI for PDF analysis: {e}")
+                    ai_summary = "Unable to generate a summary using OpenAI."
+                    improvement_suggestions = "Unable to generate improvement suggestions using OpenAI."
+
+                # Store the extracted text and analysis
+                file_data_store[file_id]["type"] = "pdf"
+                file_data_store[file_id]["text"] = text
+                file_data_store[file_id]["ai_summary"] = ai_summary
+                file_data_store[file_id]["improvement_suggestions"] = improvement_suggestions
+                print(f"File ID: {file_id}, AI Summary: {file_data_store[file_id].get('ai_summary')}")
+
+                # Return the response
+                return jsonify({
+                    "message": "File uploaded and processed successfully",
+                    "file_type": "PDF",
+                    "ai_summary": ai_summary,
+                    "improvement_suggestions": improvement_suggestions
+                }), 200
+                
+            else:
+                return jsonify({"error": "Unsupported file type. Only CSV and PDF are allowed."}), 400
+
+        except Exception as e:
+            print(f"Error processing file: {e}")
+            return jsonify({"error": "An error occurred while processing the file."}), 500
+
+
+@app.route("/generate_graph", methods=["POST"])
+def generate_graph_endpoint():
+    try:
+        # Parse and log the incoming request data
+        data = request.json
+        print(f"Graph generation payload: {data}")
+
+        # Extract required fields
+        graph_type = data.get("graph_type", "bar")
+        file_id = data.get("file_id")  # Retrieve the file_id from the payload
+        x_label = data.get("x_label", "X-axis")
+        y_label = data.get("y_label", "Y-axis")
+        title = data.get("title", "Generated Graph")
+
+        # Validate file_id
+        if not file_id or file_id not in file_data_store:
+            print("Error: File ID is invalid or data not found.")
+            return jsonify({"error": "Invalid file ID or file data not found."}), 400
+
+        # Retrieve data from file_data_store
+        graph_data = file_data_store[file_id]
+        print(f"Retrieved graph data: {graph_data}")
+
+        # Validate the presence of `x_label` and `y_label` in the graph data
+        if x_label not in graph_data or y_label not in graph_data:
+            print(f"Error: Attributes '{x_label}' or '{y_label}' not found in graph data.")
+            return jsonify({"error": f"Attributes '{x_label}' or '{y_label}' not found in graph data."}), 400
+
+        # Generate the graph using the graph utility
+        graph_base64 = generate_graph(graph_type, graph_data, title, x_label, y_label)
+
+        # Return the generated graph as a Base64 string
+        return jsonify({"graph": f"data:image/png;base64,{graph_base64}"})
+
+    except Exception as e:
+        # Catch and log unexpected errors
+        print(f"Error in /generate_graph: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5001)

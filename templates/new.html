@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Interface</title>
+    <style>
+        /* General styling */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #d1d5db;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar styling */
+        .sidebar {
+            width: 250px;
+            background-color: #dfdfe0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .sidebar .branding {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .sidebar .branding img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .sidebar .branding h1 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #3f3f46;
+        }
+
+        .sidebar button {
+            background-color: #3f3f46;
+            color: #ffffff;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .sidebar button:hover {
+            background-color: #52525b;
+        }
+
+        .sidebar .file-upload {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #ededee;
+            color: #3f3f46;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .sidebar .file-upload:hover {
+            background-color: #d4d4d8;
+        }
+
+        .sidebar .file-upload input {
+            position: absolute;
+            opacity: 0;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .sidebar .file-upload small {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #6b6b6b;
+        }
+
+        .graph-options {
+            margin-top: 20px;
+        }
+
+        .graph-options label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #3f3f46;
+        }
+
+        .graph-options select, .graph-options button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .graph-options button {
+            background-color: #3f3f46;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .graph-options button:hover {
+            background-color: #52525b;
+        }
+
+        /* Main chat area */
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .chat-container .chat-box {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #ededee;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .chat-container .message {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .chat-container .message.user {
+            justify-content: flex-end;
+        }
+
+        .chat-container .message p {
+            max-width: 75%;
+            padding: 12px 15px;
+            border-radius: 8px;
+            background-color: #565869;
+            font-size: 15px;
+            line-height: 1.5;
+            color: #e4e4e7;
+            word-wrap: break-word;
+        }
+
+        .chat-container .message.user p {
+            background-color: #3b82f6;
+        }
+
+        /* Chat input area */
+        .chat-container .input-area {
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            background-color: #e4e4e4;
+            padding: 10px;
+            width: 100%;
+            max-width: 900px;
+            margin: 20px auto 0 auto;
+        }
+
+        .chat-container .input-area input {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: none;
+            background-color: transparent;
+            color: #3f3f46;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .chat-container .input-area input::placeholder {
+            color: #9CA3AF;
+        }
+
+        .chat-container .input-area button {
+            background-color: #565869;
+            border: none;
+            color: #ffffff;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .chat-container .input-area button:hover {
+            background-color: #6b6d7a;
+        }
+
+        .chat-container .input-area button svg {
+            width: 18px;
+            height: 18px;
+            fill: #ffffff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="branding">
+            <img src="static/SalesSensei_logo.png" alt="Logo">
+            <h1>SalesSensei</h1>
+        </div>
+        <button id="refresh-chat">Refresh</button>
+        <div class="file-upload">
+            Upload File
+            <small>(csv, pdf)</small>
+            <input type="file" id="file-upload-sidebar">
+        </div>
+
+        <div class="graph-options">
+            <label for="graph-type">Type of Graph:</label>
+            <select id="graph-type">
+                <option value="bar">Bar Graph</option>
+                <option value="line">Line Graph</option>
+                <option value="pie">Pie Chart</option>
+                <option value="scatter">Scatter Plot</option>
+            </select>
+
+            <label for="attribute-1">Attribute-1:</label>
+            <select id="attribute-1">
+                <!-- Populate dynamically -->
+            </select>
+
+            <label for="attribute-2">Attribute-2:</label>
+            <select id="attribute-2">
+                <!-- Populate dynamically -->
+            </select>
+
+            <button id="generate-chart">Generate Chart</button>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box">
+            <!-- Messages will dynamically appear here -->
+        </div>
+        <div class="input-area">
+
+            <button id="attachment-btn" title="Attach file">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M21.586 10.461l-10.05 10.075c-1.95 1.949-5.122 1.949-7.071 0s-1.95-5.122 0-7.072l10.628-10.585c1.17-1.17 3.073-1.17 4.243 0 1.17 1.17 1.17 3.072 0 4.242l-8.507 8.464c-.39.39-1.024.39-1.414 0s-.39-1.024 0-1.414l7.093-7.05-1.415-1.414-7.093 7.049c-1.17 1.17-1.17 3.073 0 4.243 1.17 1.17 3.073 1.17 4.244 0l8.505-8.464c1.95-1.95 1.95-5.123 0-7.072-1.95-1.949-5.123-1.949-7.072 0L3.039 13.063c-2.73 2.729-2.73 7.17 0 9.9 2.73 2.729 7.17 2.729 9.9 0l10.05-10.075-1.414-1.414z"/>
+                </svg>
+            </button>
+            <input type="file" id="file-input" style="display: none;">
+            
+
+            <input type="text" id="questionInput" placeholder="Type your message here...">
+            <button id="send-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M2 21L23 12L2 3L2 10L15 12L2 14Z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+    <script>
+        // DOM elements
+        const refreshButton = document.getElementById("refresh-chat");
+        const fileUploadSidebar = document.getElementById("file-upload-sidebar");
+        const graphTypeSelect = document.getElementById("graph-type");
+        const attribute1Select = document.getElementById("attribute-1");
+        const attribute2Select = document.getElementById("attribute-2");
+        const generateChartButton = document.getElementById("generate-chart");
+        const chatInput = document.getElementById("questionInput");
+        const chatBox = document.getElementById("chat-box");
+        const sendButton = document.getElementById("send-btn");
+        let fileId = null;
+        let fileData = null;
+    
+        // Refresh button event listener
+        refreshButton.addEventListener("click", () => {
+            location.reload(); // Reload the page to refresh the chat
+        });
+    
+        // File upload (sidebar) event listener
+        fileUploadSidebar.addEventListener("change", async () => {
+        const file = fileUploadSidebar.files[0];
+        if (file) {
+            console.log("File selected from sidebar:", file.name);
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch("/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log("File upload successful:", result);
+
+                    // Store the file_id for future questions
+                    fileId = result.file_id;
+
+                    // Check file type
+                    if (result.file_type === "CSV") {
+                        // Handle CSV files: Populate attributes
+                        if (result.columns && result.columns.length > 0) {
+                            populateAttributes(result.columns);
+                            alert("CSV file uploaded successfully! Attributes are ready for selection.");
+                        } else {
+                            alert("CSV file has no attributes.");
+                        }
+                    } else if (result.file_type === "PDF") {
+                        // Handle PDF files: Disable attribute dropdowns
+                        disableAttributesDropdown();
+                        alert("PDF file uploaded successfully! Attributes are not applicable.");
+                    }
+                } else {
+                    const error = await response.json();
+                    console.error("File upload error:", error);
+                    alert(`Error: ${error.error}`);
+                }
+            } catch (error) {
+                console.error("Failed to upload file:", error);
+                alert("Failed to upload file. Please try again.");
+            }
+        } else {
+            console.warn("No file selected.");
+        }
+    });
+
+
+    // File upload (chatinput) event listener
+    fileUpload.addEventListener("change", async () => {
+        const file = fileUpload.files[0];
+        if (file) {
+            console.log("File selected from chatInput:", file.name);
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch("/upload", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log("File upload successful:", result);
+
+                    // Store the file_id for future questions
+                    fileId = result.file_id;
+
+                    // Check file type
+                    if (result.file_type === "CSV") {
+                        // Handle CSV files: Populate attributes
+                        if (result.columns && result.columns.length > 0) {
+                            populateAttributes(result.columns);
+                            alert("CSV file uploaded successfully! Attributes are ready for selection.");
+                        } else {
+                            alert("CSV file has no attributes.");
+                        }
+                    } else if (result.file_type === "PDF") {
+                        // Handle PDF files: Disable attribute dropdowns
+                        disableAttributesDropdown();
+                        alert("PDF file uploaded successfully! Attributes are not applicable.");
+                    }
+                } else {
+                    const error = await response.json();
+                    console.error("File upload error:", error);
+                    alert(`Error: ${error.error}`);
+                }
+            } catch (error) {
+                console.error("Failed to upload file:", error);
+                alert("Failed to upload file. Please try again.");
+            }
+        } else {
+            console.warn("No file selected.");
+        }
+    });
+
+
+        // Populate attribute dropdowns dynamically
+        // Populate attribute dropdowns dynamically
+        function populateAttributes(attributes) {
+    attribute1Select.innerHTML = ""; // Clear existing options
+    attribute2Select.innerHTML = ""; // Clear existing options
+
+    attributes.forEach(attr => {
+        const option1 = document.createElement("option");
+        option1.value = attr;
+        option1.textContent = attr;
+
+        const option2 = option1.cloneNode(true);
+
+        attribute1Select.appendChild(option1);
+        attribute2Select.appendChild(option2);
+    });
+
+    attribute1Select.disabled = false; // Enable dropdown
+    attribute2Select.disabled = false; // Enable dropdown
+    console.log("Attribute dropdowns populated for CSV.");
+}
+
+
+// Generate chart button event listener
+generateChartButton.addEventListener("click", async () => {
+    const graphType = graphTypeSelect.value; // Get selected graph type
+    const attribute1 = attribute1Select.value; // Get X-axis attribute
+    const attribute2 = attribute2Select.value; // Get Y-axis attribute
+
+    if (!fileId) {
+        //Check if a file has been uploaded
+        alert("Please upload a file before generating a chart.");
+        return;
+    }
+
+    if (!attribute1 || !attribute2) {
+        // Ensure both attributes are selected
+        alert("Please select both attributes to generate a chart.");
+        return;
+    }
+
+    // Prepare payload for the /generate_graph endpoint
+    const payload = {
+        graph_type: graphType,
+        file_id: fileId, // Pass the file ID
+        x_label: attribute1,
+        y_label: attribute2,
+        title: `Generated ${graphType.charAt(0).toUpperCase() + graphType.slice(1)} Chart`, // Capitalize graph type
+    };
+
+    console.log("Payload for /generate_graph:", payload); // Debugging: log the payload
+
+    try {
+        // Call the /generate_graph endpoint
+        const response = await postData("/generate_graph", payload);
+
+        if (response.graph) {
+            // Display the generated graph
+            addMessage(response.graph, "bot");
+        } else if (response.error) {
+            // Handle errors from the backend
+            alert(`Error generating graph: ${response.error}`);
+        } else {
+            alert("Failed to generate graph. Please try again.");
+        }
+    } catch (error) {
+        console.error("Error generating chart:", error); // Log errors for debugging
+        alert("Error generating chart. Please try again.");
+    }
+});
+
+        // Function to handle POST requests
+        async function postData(url = "", data = {}) {
+            try {
+                console.log("Sending data to:", url, "with payload:", data);
+    
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                });
+    
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+    
+                const responseData = await response.json();
+                console.log("API Response:", responseData);
+                return responseData;
+            } catch (error) {
+                console.error("Error in postData:", error);
+                return { answer: "Unable to process your request. Please try again later." };
+            }
+        }
+    
+        // Event listener for the send button
+        sendButton.addEventListener("click", async () => {
+            await processUserMessage();
+        });
+    
+        // Event listener for the Enter key in the input field
+        chatInput.addEventListener("keydown", async (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault(); // Prevent default form submission behavior
+                await processUserMessage();
+            }
+        });
+    
+        // Function to process the user's message
+        async function processUserMessage() {
+            const userMessage = chatInput.value.trim();
+            if (userMessage) {
+                addMessage(userMessage, "user");
+                chatInput.value = "";
+    
+                try {
+                    const payload = fileId
+                        ? { question: userMessage, file_id: fileId }
+                        : { question: userMessage };
+    
+                    const result = await postData("/api", payload);
+                    if (result.graph) {
+                        addMessage(result.graph, "bot");
+                    } else {
+                        addMessage(result.answer, "bot");
+                    }
+                } catch (error) {
+                    console.error("Error processing message:", error);
+                    addMessage("Unable to process your request. Please try again later.", "bot");
+                }
+            }
+        }
+    
+        // Function to add messages to the chatbox
+function addMessage(message, sender) {
+    const messageDiv = document.createElement("div");
+    messageDiv.classList.add("message", sender);
+
+    if (message.startsWith("data:image/png;base64,")) {
+        // Render as an image if it's a Base64 graph
+        messageDiv.innerHTML = `<img src="${message}" alt="Generated Graph" style="max-width: 100%; border-radius: 8px;" />`;
+    } else {
+        // Process text message: Preserve formatting with line breaks
+        const formattedMessage = formatMessage(message);
+        messageDiv.innerHTML = `<p>${formattedMessage}</p>`;
+    }
+
+    chatBox.appendChild(messageDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// Function to format message for better readability
+function formatMessage(message) {
+    return message
+        .replace(/\n/g, "<br>")  // Preserve new lines
+        .replace(/(\d+️⃣)/g, "<br><b>$1</b>")  // Highlight numbered points
+        .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")  // Bold **text**
+        .replace(/(📈|💰|📝|👩‍💼)/g, "<br>$1 ");  // Add line break before emojis for clarity
+}
+
+    </script>
+    
+    
+    
+</body>
+
+</html>
