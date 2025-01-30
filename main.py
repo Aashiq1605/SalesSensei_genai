@@ -52,8 +52,7 @@ def home():
         chats = mongo.db.chats.find({})
         myChats = [chat for chat in chats]
         print("Chats retrieved successfully:", myChats)
-        return f"MongoDB Connected! Sample Chat: {myChats}"
-        # return render_template("new.html", myChats=myChats)
+        return render_template("new.html", myChats=myChats)
     except Exception as e:
         print(f"Error retrieving chats: {e}")
         return render_template("new.html", myChats=[])
@@ -434,4 +433,4 @@ def generate_graph_endpoint():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5001)
