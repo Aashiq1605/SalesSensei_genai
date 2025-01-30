@@ -4,6 +4,7 @@ import openai
 import os
 import pandas as pd
 import pdfplumber
+from pymongo import MongoClient
 import gridfs
 import uuid
 from Key import OPENAI_API_KEY
