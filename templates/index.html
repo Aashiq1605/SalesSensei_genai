@@ -12,6 +12,49 @@
             padding: 0;
             box-sizing: border-box;
         }
+        .attachment-container {
+        position: relative;
+        display: inline-block;
+    }
+    
+    #attachment-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+    }
+
+    #attachment-btn svg {
+        width: 24px;
+        height: 24px;
+        fill: #565869;
+    }
+
+    /* Tooltip styles */
+    .tooltip {
+        position: relative;
+    }
+
+    .tooltip:hover::after {
+        content: attr(title);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #333;
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip:hover::after {
+        opacity: 1;
+    }
 
         body {
             font-family: Arial, sans-serif;
@@ -182,17 +225,17 @@
 
         /* Chat input area */
         .chat-container .input-area {
-            display: flex;
-            align-items: center;
-            border-radius: 8px;
-            background-color: #e4e4e4;
-            padding: 10px;
-            width: 100%;
-            max-width: 900px;
-            margin: 20px auto 0 auto;
-        }
+        display: flex;
+        align-items: flex-end; /* Changed from center to flex-end */
+        border-radius: 8px;
+        background-color: #e4e4e4;
+        padding: 10px;
+        width: 100%;
+        max-width: 900px;
+        margin: 20px auto 0 auto;
+            }
 
-        .chat-container .input-area input {
+        .chat-container .input-area textarea {
             flex-grow: 1;
             padding: 12px 15px;
             border: none;
@@ -200,9 +243,13 @@
             color: #3f3f46;
             font-size: 15px;
             outline: none;
+            resize: none;
+            min-height: 40px; /* Adjust as needed */
+            max-height: 150px; /* This sets the maximum height */
+            overflow-y: auto;
         }
 
-        .chat-container .input-area input::placeholder {
+        .chat-container .input-area textarea::placeholder {
             color: #9CA3AF;
         }
 
@@ -238,11 +285,6 @@
             <h1>SalesSensei</h1>
         </div>
         <button id="refresh-chat">Refresh</button>
-        <div class="file-upload">
-            Upload File
-            <small>(csv, pdf)</small>
-            <input type="file" id="file-upload-sidebar">
-        </div>
 
         <div class="graph-options">
             <label for="graph-type">Type of Graph:</label>
@@ -272,16 +314,16 @@
             <!-- Messages will dynamically appear here -->
         </div>
         <div class="input-area">
-
-            <button id="attachment-btn" title="Attach file">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                    <path d="M21.586 10.461l-10.05 10.075c-1.95 1.949-5.122 1.949-7.071 0s-1.95-5.122 0-7.072l10.628-10.585c1.17-1.17 3.073-1.17 4.243 0 1.17 1.17 1.17 3.072 0 4.242l-8.507 8.464c-.39.39-1.024.39-1.414 0s-.39-1.024 0-1.414l7.093-7.05-1.415-1.414-7.093 7.049c-1.17 1.17-1.17 3.073 0 4.243 1.17 1.17 3.073 1.17 4.244 0l8.505-8.464c1.95-1.95 1.95-5.123 0-7.072-1.95-1.949-5.123-1.949-7.072 0L3.039 13.063c-2.73 2.729-2.73 7.17 0 9.9 2.73 2.729 7.17 2.729 9.9 0l10.05-10.075-1.414-1.414z"/>
-                </svg>
-            </button>
+            <div class="attachment-container">
+                <button id="attachment-btn" class="tooltip" title="Attach .csv or .pdf file">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                        <path d="M21.586 10.461l-10.05 10.075c-1.95 1.949-5.122 1.949-7.071 0s-1.95-5.122 0-7.072l10.628-10.585c1.17-1.17 3.073-1.17 4.243 0 1.17 1.17 1.17 3.072 0 4.242l-8.507 8.464c-.39.39-1.024.39-1.414 0s-.39-1.024 0-1.414l7.093-7.05-1.415-1.414-7.093 7.049c-1.17 1.17-1.17 3.073 0 4.243 1.17 1.17 3.073 1.17 4.244 0l8.505-8.464c1.95-1.95 1.95-5.123 0-7.072-1.95-1.949-5.123-1.949-7.072 0L3.039 13.063c-2.73 2.729-2.73 7.17 0 9.9 2.73 2.729 7.17 2.729 9.9 0l10.05-10.075-1.414-1.414z"/>
+                    </svg>
+                </button>
+            </div>
             <input type="file" id="file-input" style="display: none;">
             
-
-            <input type="text" id="questionInput" placeholder="Type your message here...">
+            <textarea id="questionInput" placeholder="Type your message here..." rows="1"></textarea>
             <button id="send-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path d="M2 21L23 12L2 3L2 10L15 12L2 14Z" />
@@ -293,17 +335,6 @@
         // DOM elements
         const refreshButton = document.getElementById("refresh-chat");
         const fileUploadSidebar = document.getElementById("file-upload-sidebar");
-        document.getElementById('attachment-btn').addEventListener('click', function() {
-        document.getElementById('file-input').click();
-    });
-
-    document.getElementById('file-input').addEventListener('change', function(event) {
-        const file = event.target.files[0];
-        if (file) {
-            console.log('File selected:', file.name);
-            // Here you can add code to handle the file, such as uploading it or preparing it for sending
-        }
-    });
         const graphTypeSelect = document.getElementById("graph-type");
         const attribute1Select = document.getElementById("attribute-1");
         const attribute2Select = document.getElementById("attribute-2");
@@ -313,133 +344,142 @@
         const sendButton = document.getElementById("send-btn");
         let fileId = null;
         let fileData = null;
+
+        function adjustTextareaHeight() {
+            chatInput.style.height = "auto";
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 200) + "px"; // Allow growth up to 200px
+        }
+
+        // Adjust height dynamically as the user types
+        chatInput.addEventListener("input", adjustTextareaHeight);
+
+        chatInput.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                if (e.shiftKey) {
+                    // Shift+Enter should add a new line but NOT send the message
+                    e.preventDefault(); // Prevent default behavior
+                    const start = this.selectionStart;
+                    const end = this.selectionEnd;
+                    this.value =
+                        this.value.substring(0, start) +
+                        "\n" +
+                        this.value.substring(end);
+                    this.selectionStart = this.selectionEnd = start + 1;
+                    adjustTextareaHeight();
+                } else {
+                    // Enter alone sends the message
+                    e.preventDefault();
+                    sendMessage();
+                }
+            }
+        });
+
+        // Send message on button click
+        sendButton.addEventListener("click", sendMessage);
+
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (message) {
+                console.log("Sending message:", message);
+
+                // Your existing function to send the message
+
+                // Clear input and reset height
+                chatInput.value = "";
+                adjustTextareaHeight();
+            }
+        }
+
+        // Set initial height
+        adjustTextareaHeight();
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const attachmentBtn = document.getElementById('attachment-btn');
+            const fileInput = document.getElementById('file-input');
+
+            // Event listener for opening file picker
+            attachmentBtn.addEventListener('click', () => fileInput.click());
+
+            // Event listener for handling file selection
+            fileInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    console.log('📂 File selected:', file.name);
+                    
+                    // Prepare FormData
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    try {
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: formData,
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            console.log('✅ File uploaded successfully:', result);
+
+                            // Store the file_id for future questions
+                            fileId = result.file_id;
+
+                            // Check file type
+                            if (result.file_type === 'CSV') {
+                                // Handle CSV files: Populate attributes
+                                if (result.columns && result.columns.length > 0) {
+                                    populateAttributes(result.columns);
+                                    alert('CSV file uploaded successfully! Attributes are ready for selection.');
+                                } else {
+                                    alert('CSV file has no attributes.');
+                                }
+                            } else if (result.file_type === 'PDF') {
+                                // Handle PDF files: Disable attribute dropdowns
+                                disableAttributesDropdown();
+                                alert('PDF file uploaded successfully! Attributes are not applicable.');
+                            }
+                        } else {
+                            const error = await response.json();
+                            console.error('❌ File upload error:', error);
+                            alert(`Error: ${error.error}`);
+                        }
+                    } catch (error) {
+                        console.error('❌ Failed to upload file:', error);
+                        alert('Failed to upload file. Please try again.');
+                    }
+                } else {
+                    console.warn('⚠️ No file selected.');
+                }
+            });
+        });
     
         // Refresh button event listener
         refreshButton.addEventListener("click", () => {
             location.reload(); // Reload the page to refresh the chat
         });
     
-        // File upload (sidebar) event listener
-        fileUploadSidebar.addEventListener("change", async () => {
-        const file = fileUploadSidebar.files[0];
-        if (file) {
-            console.log("File selected from sidebar:", file.name);
-            const formData = new FormData();
-            formData.append("file", file);
-
-            try {
-                const response = await fetch("/upload", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log("File upload successful:", result);
-
-                    // Store the file_id for future questions
-                    fileId = result.file_id;
-
-                    // Check file type
-                    if (result.file_type === "CSV") {
-                        // Handle CSV files: Populate attributes
-                        if (result.columns && result.columns.length > 0) {
-                            populateAttributes(result.columns);
-                            alert("CSV file uploaded successfully! Attributes are ready for selection.");
-                        } else {
-                            alert("CSV file has no attributes.");
-                        }
-                    } else if (result.file_type === "PDF") {
-                        // Handle PDF files: Disable attribute dropdowns
-                        disableAttributesDropdown();
-                        alert("PDF file uploaded successfully! Attributes are not applicable.");
-                    }
-                } else {
-                    const error = await response.json();
-                    console.error("File upload error:", error);
-                    alert(`Error: ${error.error}`);
-                }
-            } catch (error) {
-                console.error("Failed to upload file:", error);
-                alert("Failed to upload file. Please try again.");
-            }
-        } else {
-            console.warn("No file selected.");
-        }
-    });
-
-
-    // File upload (chatinput) event listener
-    fileUpload.addEventListener("change", async () => {
-        const file = fileUpload.files[0];
-        if (file) {
-            console.log("File selected from chatInput:", file.name);
-            const formData = new FormData();
-            formData.append("file", file);
-
-            try {
-                const response = await fetch("/upload", {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log("File upload successful:", result);
-
-                    // Store the file_id for future questions
-                    fileId = result.file_id;
-
-                    // Check file type
-                    if (result.file_type === "CSV") {
-                        // Handle CSV files: Populate attributes
-                        if (result.columns && result.columns.length > 0) {
-                            populateAttributes(result.columns);
-                            alert("CSV file uploaded successfully! Attributes are ready for selection.");
-                        } else {
-                            alert("CSV file has no attributes.");
-                        }
-                    } else if (result.file_type === "PDF") {
-                        // Handle PDF files: Disable attribute dropdowns
-                        disableAttributesDropdown();
-                        alert("PDF file uploaded successfully! Attributes are not applicable.");
-                    }
-                } else {
-                    const error = await response.json();
-                    console.error("File upload error:", error);
-                    alert(`Error: ${error.error}`);
-                }
-            } catch (error) {
-                console.error("Failed to upload file:", error);
-                alert("Failed to upload file. Please try again.");
-            }
-        } else {
-            console.warn("No file selected.");
-        }
-    });
 
 
         // Populate attribute dropdowns dynamically
         // Populate attribute dropdowns dynamically
         function populateAttributes(attributes) {
-    attribute1Select.innerHTML = ""; // Clear existing options
-    attribute2Select.innerHTML = ""; // Clear existing options
+            attribute1Select.innerHTML = ""; // Clear existing options
+            attribute2Select.innerHTML = ""; // Clear existing options
 
-    attributes.forEach(attr => {
-        const option1 = document.createElement("option");
-        option1.value = attr;
-        option1.textContent = attr;
+            attributes.forEach(attr => {
+                const option1 = document.createElement("option");
+                option1.value = attr;
+                option1.textContent = attr;
 
-        const option2 = option1.cloneNode(true);
+                const option2 = option1.cloneNode(true);
 
-        attribute1Select.appendChild(option1);
-        attribute2Select.appendChild(option2);
-    });
+                attribute1Select.appendChild(option1);
+                attribute2Select.appendChild(option2);
+            });
 
-    attribute1Select.disabled = false; // Enable dropdown
-    attribute2Select.disabled = false; // Enable dropdown
-    console.log("Attribute dropdowns populated for CSV.");
-}
+            attribute1Select.disabled = false; // Enable dropdown
+            attribute2Select.disabled = false; // Enable dropdown
+            console.log("Attribute dropdowns populated for CSV.");
+        }
 
 
 // Generate chart button event listener
@@ -528,20 +568,44 @@ generateChartButton.addEventListener("click", async () => {
                 await processUserMessage();
             }
         });
-    
+
+        function addTypingIndicator() {
+            const typingDiv = document.createElement("div");
+            typingDiv.classList.add("message", "bot", "typing-indicator");
+            typingDiv.innerHTML = "<p><em>SalesSensei is typing...</em></p>";
+            chatBox.appendChild(typingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll
+            return typingDiv;
+        }
+
+        // Function to remove the typing indicator
+        function removeTypingIndicator() {
+            const typingIndicator = chatBox.querySelector(".typing-indicator");
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
         // Function to process the user's message
         async function processUserMessage() {
             const userMessage = chatInput.value.trim();
             if (userMessage) {
                 addMessage(userMessage, "user");
                 chatInput.value = "";
-    
+
+                // Show typing indicator
+                const typingIndicator = addTypingIndicator();
+
                 try {
                     const payload = fileId
                         ? { question: userMessage, file_id: fileId }
                         : { question: userMessage };
-    
+
                     const result = await postData("/api", payload);
+                    
+                    // Remove typing indicator before adding the bot's response
+                    removeTypingIndicator();
+
                     if (result.graph) {
                         addMessage(result.graph, "bot");
                     } else {
@@ -549,28 +613,56 @@ generateChartButton.addEventListener("click", async () => {
                     }
                 } catch (error) {
                     console.error("Error processing message:", error);
+                    
+                    // Remove typing indicator in case of error
+                    removeTypingIndicator();
+                    
                     addMessage("Unable to process your request. Please try again later.", "bot");
                 }
             }
         }
-    
         // Function to add messages to the chatbox
-function addMessage(message, sender) {
-    const messageDiv = document.createElement("div");
-    messageDiv.classList.add("message", sender);
+        function addMessage(message, sender) {
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message", sender);
+            
+            if (message.startsWith("data:image/png;base64,")) {
+                // Render as an image if it's a Base64 graph
+                messageDiv.innerHTML = `<img src="${message}" alt="Generated Graph" style="max-width: 100%; border-radius: 8px;" />`;
+                chatBox.appendChild(messageDiv);
+            } else {
+                // Preserve line breaks and format text properly
+                const formattedMessage = message.replace(/\n/g, "<br>");
+                
+                if (sender === 'user') {
+                    // For user messages, display immediately without typing effect
+                    messageDiv.innerHTML = `<p>${formattedMessage}</p>`;
+                    chatBox.appendChild(messageDiv);
+                } else {
+                    // For AI responses, apply typing effect
+                    messageDiv.innerHTML = `<p></p>`; // Empty paragraph to start typing effect
+                    chatBox.appendChild(messageDiv);
 
-    if (message.startsWith("data:image/png;base64,")) {
-        // Render as an image if it's a Base64 graph
-        messageDiv.innerHTML = `<img src="${message}" alt="Generated Graph" style="max-width: 100%; border-radius: 8px;" />`;
-    } else {
-        // Process text message: Preserve formatting with line breaks
-        const formattedMessage = formatMessage(message);
-        messageDiv.innerHTML = `<p>${formattedMessage}</p>`;
-    }
+                    // Typing Effect: Gradually display text
+                    let i = 0;
+                    function typeEffect() {
+                        if (i < formattedMessage.length) {
+                            if (formattedMessage.substr(i, 4) === "<br>") {
+                                messageDiv.querySelector("p").innerHTML += "<br>"; // Add line break
+                                i += 4; // Skip `<br>` tag
+                            } else {
+                                messageDiv.querySelector("p").innerHTML += formattedMessage[i];
+                                i++;
+                            }
+                            setTimeout(typeEffect, 20); // Adjust speed (20ms per letter)
+                        }
+                    }
+                    typeEffect();
+                }
+            }
 
-    chatBox.appendChild(messageDiv);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to the latest message
+        }
 
 // Function to format message for better readability
 function formatMessage(message) {
