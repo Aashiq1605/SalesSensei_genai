@@ -52,7 +52,8 @@ def home():
         chats = mongo.db.chats.find({})
         myChats = [chat for chat in chats]
         print("Chats retrieved successfully:", myChats)
-        return render_template("new.html", myChats=myChats)
+        return f"MongoDB Connected! Sample Chat: {myChats}"
+        # return render_template("new.html", myChats=myChats)
     except Exception as e:
         print(f"Error retrieving chats: {e}")
         return render_template("new.html", myChats=[])
