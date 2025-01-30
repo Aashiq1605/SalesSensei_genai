@@ -1,0 +1,9 @@
+Flask
+Flask-PyMongo
+openai
+pandas
+pdfplumber
+gridfs
+matplotlib
+numpy
+gunicorn
