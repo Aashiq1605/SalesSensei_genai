@@ -3,7 +3,7 @@ Flask-PyMongo
 openai
 pandas
 pdfplumber
-gridfs
+pymongo
 matplotlib
 numpy
 gunicorn
