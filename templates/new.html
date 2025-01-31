@@ -445,8 +445,9 @@
                             fileId = result.file_id;
 
                             // 🆕 Display the file name in sidebar
-                            displayUploadedFile(result.file_name, result.file_type);
-
+                            
+                             displayUploadedFile(result.file_name, result.file_type);
+                                
                             // Check file type
                             if (result.file_type === 'CSV') {
                                 // Handle CSV files: Populate attributes

@@ -7,14 +7,19 @@ import pdfplumber
 from pymongo import MongoClient
 import gridfs
 import uuid
-from Key import OPENAI_API_KEY
+##from Key import OPENAI_API_KEY
 from graph_utils import generate_graph  # Importing the graph utility
+from dotenv import load_dotenv
 
-# Set your OpenAI API key
-openai.api_key = OPENAI_API_KEY
+# Load .env file
+load_dotenv()
+
+# Retrieve API key
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
 
 app = Flask(__name__)
-app.config["MONGO_URI"] = "mongodb+srv://shakeashik16:QtFYhn9pelryBKlM@cluster0.xtmta.mongodb.net/chatgpt"
+app.config["MONGO_URI"] = os.getenv("MONGODB_URI")
 app.config["UPLOAD_FOLDER"] = "./uploads"  # Folder to save uploaded files
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)  # Create folder if it doesn't exist
 mongo = PyMongo(app)
@@ -185,7 +190,7 @@ def qa():
 
                     📌 User Asks for a Sales Data Graph
                     👉 “Here’s your requested revenue vs. conversion rate chart. Key takeaway: Revenue spiked 20% after increasing personalized follow-ups—worth replicating next quarter. 📊”
-
+                        If a data given analyse each column and rows
                     🔹 AnyMind Group Core Values Alignment
                     SalesSensei aligns with AnyMind Group’s principles:
                     🏆 Be Bold: Encourages sales reps to confidently refine their pitch & close deals.
@@ -202,7 +207,10 @@ def qa():
 
                     🚀 Final Outcome
                     This version of SalesSensei will function like a top-tier BD mentor, providing structured guidance to optimize deal-making, refine proposals, and enhance sales efficiency—all while ensuring AI-generated insights align with real-world BD expertise.
-"""
+                    
+                    Add emojis in each chat,
+                    If I upload a file I want you to analyse and we will chat based on that file data.
+                    """
                     ),
                 },
                 {"role": "user", "content": full_prompt},  # Ensure this is a string
@@ -359,7 +367,7 @@ def upload_file():
                     file_data_store[file_id]["ai_summary"] = ai_summary
                     file_data_store[file_id]["improvement_suggestions"] = improvement_suggestions
                     print(f"✅ Stored PDF File Data for {file_id}")
-
+                    print(f"filefile name is {file.filename}")
                     return jsonify({
                         "message": "File uploaded successfully",
                         "file_id": file_id,
@@ -368,12 +376,12 @@ def upload_file():
                         "ai_summary": ai_summary,
                         "improvement_suggestions": improvement_suggestions
                     }), 200
-
+                        
                 except Exception as e:
                     print(f"Error reading PDF file: {e}")
                     return jsonify({"error": "Failed to read the PDF file. Ensure it contains readable text."}), 400
 
-                
+             
             else:
                 return jsonify({"error": "Unsupported file type. Only CSV and PDF are allowed."}), 400
 
@@ -434,5 +442,4 @@ def generate_graph_endpoint():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
-
+    app.run(debug=True, port=5001)
