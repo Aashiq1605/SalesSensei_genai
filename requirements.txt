@@ -1,10 +1,9 @@
 Flask
 Flask-PyMongo
 openai
+python-dotenv
 pandas
 pdfplumber
 pymongo
+gridfs
 matplotlib
-numpy
-gunicorn
-dotenv
