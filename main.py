@@ -34,7 +34,7 @@ def extract_graph_details(question):
     """
     try:
         # Query OpenAI's API for extracting graph details
-        response = openai.Chat.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {"role": "user", "content": f"Analyze the following query and extract graph details, including graph type, x-axis, y-axis, and any additional information needed: {question}"}
@@ -121,7 +121,7 @@ def qa():
 
             # Query OpenAI with the constructed prompt
             print("Querying ChatGPT with prompt:", full_prompt)
-            response = openai.Chat.create(
+            response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {
@@ -273,7 +273,7 @@ def upload_file():
 
                     # Query OpenAI for summarization and insights
                     try:
-                        response = openai.Chat.create(
+                        response = openai.ChatCompletion.create(
                             model="gpt-4",
                             messages=[
                                 {"role": "system", "content": "You are a data analyst."},
@@ -332,7 +332,7 @@ def upload_file():
 
                     # ✅ Query OpenAI for summarization
                     try:
-                        summary_response = openai.Chat.create(
+                        summary_response = openai.ChatCompletion.create(
                             model="gpt-4",
                             messages=[
                                 {"role": "system", "content": "You are a document summarizer."},
@@ -344,7 +344,7 @@ def upload_file():
                         ai_summary = summary_response.choices[0].message.content.strip()
 
                         # ✅ Generate improvement suggestions
-                        improvement_response = openai.Chat.create(
+                        improvement_response = openai.ChatCompletion.create(
                             model="gpt-4",
                             messages=[
                                 {"role": "system", "content": "You are a business consultant specializing in improving proposals."},
